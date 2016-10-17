@@ -22,7 +22,6 @@ import static org.junit.Assert.fail;
 public class PaillierPrivateKeyRingTest
 {
 	private String                 password;
-	private String                 longPassword;
 	private PaillierPrivateKeyRing skRing;
 	private PaillierPrivateKey     sk0;
 	private PaillierPrivateKey     sk1;
@@ -32,7 +31,6 @@ public class PaillierPrivateKeyRingTest
 	public PaillierPrivateKeyRingTest() throws Exception
 	{
 		password = "testPass";
-		longPassword = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut lab";
 		skRing = new PaillierPrivateKeyRing(password);
 		sk0 = PaillierPrivateKey.create(1024);
 		sk1 = PaillierPrivateKey.create(1024);
@@ -93,7 +91,7 @@ public class PaillierPrivateKeyRingTest
 	{
 		try
 		{
-			PaillierPrivateKeyRing.loadFromFile(longPassword);
+			PaillierPrivateKeyRing.loadFromFile("wrong" + password);
 		}
 		catch (PaillierKeyMismatchException e)
 		{
