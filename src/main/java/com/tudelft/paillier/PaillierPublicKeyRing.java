@@ -1,19 +1,24 @@
 package com.tudelft.paillier;
 
 import com.tudelft.paillier.util.SerialisationUtil;
+import org.jetbrains.annotations.Nullable;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-class PaillierPublicKeyRing
+public class PaillierPublicKeyRing
 {
+	public static final Path keyDir = Paths.get("./keys");
+	public static final Path keyRingFile = Paths.get(keyDir + "/pk_ring.pai");
+	
 	private transient Map<Integer, PaillierPublicKey> keyRing;
 	
 	public PaillierPublicKeyRing()
@@ -33,34 +38,27 @@ class PaillierPublicKeyRing
 		}
 	}
 	
-	static PaillierPublicKeyRing loadFromFile(File file) throws IOException, ParseException
+	public static PaillierPublicKeyRing loadFromFile() throws IOException, ParseException
 	{
+		if(!keyDir.toFile().exists())
+		{
+			return new PaillierPublicKeyRing(new JSONObject());
+		}
 		JSONParser parser  = new JSONParser();
-		JSONObject jsonObj = (JSONObject) parser.parse(new FileReader(file));
+		JSONObject jsonObj = (JSONObject) parser.parse(new FileReader(keyRingFile.toFile()));
 		
 		return new PaillierPublicKeyRing(jsonObj);
 	}
 	
-	void put(int userId, PaillierPublicKey pk) throws Exception
+	public void writeToFile() throws IOException
 	{
-		if (keyRing.containsKey(userId) && !keyRing.get(userId).equals(pk))
+		if(!keyDir.toFile().exists())
 		{
-			throw new Exception("There already exists a different public key for user ID " + userId + " in the keyring");
+			if (!keyDir.toFile().mkdir())
+			{
+				throw new IOException("Could not create directory: " + keyDir);
+			}
 		}
-		keyRing.put(userId, pk);
-	}
-	
-	PaillierPublicKey get(int userId) throws Exception
-	{
-		if (!keyRing.containsKey(userId))
-		{
-			throw new Exception("There exists no public key for user ID " + userId + " in the keyring");
-		}
-		return keyRing.get(userId);
-	}
-	
-	void writeToFile(File file) throws IOException
-	{
 		JSONObject jsonObj = new JSONObject();
 		
 		for (Map.Entry id_key : keyRing.entrySet())
@@ -70,9 +68,44 @@ class PaillierPublicKeyRing
 			((PaillierPublicKey) id_key.getValue()).serialize(serializer);
 			jsonObj.put(id_key.getKey(), serializer.getNode());
 		}
-		FileOutputStream fos = new FileOutputStream(file);
+		FileOutputStream fos = new FileOutputStream(keyRingFile.toFile());
 		
 		fos.write(jsonObj.toJSONString().getBytes());
 		fos.close();
+	}
+	
+	public void put(int userId, PaillierPublicKey pk)
+	{
+		keyRing.put(userId, pk);
+	}
+	
+	@Nullable
+	public PaillierPublicKey get(int userId)
+	{
+		return keyRing.get(userId);
+	}
+	
+	public int size()
+	{
+		return keyRing.size();
+	}
+	
+	public boolean equals(Object o)
+	{
+		if (o == this) { return true; }
+		if (o == null) { return false; }
+		if(o.getClass() != PaillierPublicKeyRing.class) { return false; }
+		
+		PaillierPublicKeyRing other = (PaillierPublicKeyRing) o;
+		
+		for (Map.Entry id_key : keyRing.entrySet())
+		{
+			try
+			{
+				if (!other.get((Integer) id_key.getKey()).equals(id_key.getValue())) { return false; }
+			}
+			catch (Exception e) { return false; }
+		}
+		return true;
 	}
 }
