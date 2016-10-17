@@ -1,7 +1,6 @@
 package com.tudelft.paillier;
 
-import com.tudelft.paillier.PaillierPublicKey;
-import com.tudelft.paillier.cli.SerialisationUtil;
+import com.tudelft.paillier.util.SerialisationUtil;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -55,7 +54,7 @@ class PaillierPublicKeyRing
 	{
 		if (!keyRing.containsKey(userId))
 		{
-			throw new Exception("There exists no public key for user ID " + userId + "in the keyring");
+			throw new Exception("There exists no public key for user ID " + userId + " in the keyring");
 		}
 		return keyRing.get(userId);
 	}

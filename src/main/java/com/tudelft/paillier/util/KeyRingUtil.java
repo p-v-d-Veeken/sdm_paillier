@@ -59,19 +59,20 @@ public class KeyRingUtil
 	
 	public static byte[] genSalt()
 	{
-		byte[] salt = new byte[16];
-		
-		random.nextBytes(salt);
-		
-		return salt;
+		return randBytes(16);
 	}
 	
 	public static byte[] genKey()
 	{
-		byte[] key   = new byte[256 / 8];
+		return randBytes(256 / 8);
+	}
+	
+	public static byte[] randBytes(int amount)
+	{
+		byte[] bytes = new byte[amount];
 		
-		random.nextBytes(key);
+		random.nextBytes(bytes);
 		
-		return key;
+		return bytes;
 	}
 }

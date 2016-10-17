@@ -29,7 +29,7 @@ import java.util.Map;
 class PaillierPrivateKeyRing
 {
 	private static final Path keyRingFile  = Paths.get("./keys/sk_ring.pai");
-	private static final Path AeskeyFile   = Paths.get("./keys/key.pai");
+	private static final Path AESKeyFile   = Paths.get("./keys/key.pai");
 	private static final Path passHashFile = Paths.get("./keys/pass_hash.pai");
 	private static final int  iterations   = 100000;
 	private static final int  PBEKeyLength = 256;
@@ -47,7 +47,9 @@ class PaillierPrivateKeyRing
 		SecretKeyFactory skf  = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
 		PBEKeySpec       spec = new PBEKeySpec(password.toCharArray(), salt, iterations, PBEKeyLength);
 		
-		hashKey = iterations + ":" + KeyRingUtil.toHex(salt) + ":" + KeyRingUtil.toHex(skf.generateSecret(spec).getEncoded());
+		hashKey = iterations
+				+ ":" + KeyRingUtil.toHex(salt)
+				+ ":" + KeyRingUtil.toHex(skf.generateSecret(spec).getEncoded());
 	}
 	
 	private PaillierPrivateKeyRing(JSONObject jsonObj, String hashKey)
@@ -74,15 +76,15 @@ class PaillierPrivateKeyRing
 		{
 			throw new Exception("Invalid password");
 		}
-		byte[]        AESKey     = loadAesKey(ArrayUtils.toPrimitive(KeyRingUtil.hashToTriple(hashKey).getRight()));
+		byte[]        AESKey     = loadAESKey(ArrayUtils.toPrimitive(KeyRingUtil.hashToTriple(hashKey).getRight()));
 		byte[]        bytes      = Files.readAllBytes(keyRingFile);
 		byte[]        iv         = ArrayUtils.subarray(bytes, 0, 16);
 		byte[]        keyRingEnc = ArrayUtils.subarray(bytes, 16, bytes.length);
 		JSONParser    parser     = new JSONParser();
-		SecretKeySpec AesKeySpec = new SecretKeySpec(AESKey, "AES");
+		SecretKeySpec AESKeySpec = new SecretKeySpec(AESKey, "AES");
 		Cipher        cipher     = Cipher.getInstance("AES/CBC/PKCS7Padding");
 		
-		cipher.init(Cipher.DECRYPT_MODE, AesKeySpec, new IvParameterSpec(iv));
+		cipher.init(Cipher.DECRYPT_MODE, AESKeySpec, new IvParameterSpec(iv));
 		
 		String     keyRingStr = new String(cipher.doFinal(keyRingEnc));
 		JSONObject jsonObj    = (JSONObject) parser.parse(keyRingStr);
@@ -105,9 +107,9 @@ class PaillierPrivateKeyRing
 			generateKey();
 			generateHash();
 		}
-		if (!AeskeyFile.toFile().exists())
+		if (!AESKeyFile.toFile().exists())
 		{
-			throw new FileNotFoundException("AES key file (" + AeskeyFile + ") not found, keyring file is unrecoverable.");
+			throw new FileNotFoundException("AES key file (" + AESKeyFile + ") not found, keyring file is unrecoverable.");
 		}
 		else if (!passHashFile.toFile().exists())
 		{
@@ -123,13 +125,13 @@ class PaillierPrivateKeyRing
 			((PaillierPrivateKey) id_key.getValue()).serialize(serializer);
 			jsonObj.put(id_key.getKey(), serializer.getNode());
 		}
-		byte[]           key        = loadAesKey(ArrayUtils.toPrimitive(KeyRingUtil.hashToTriple(hashKey).getRight()));
+		byte[]           key        = loadAESKey(ArrayUtils.toPrimitive(KeyRingUtil.hashToTriple(hashKey).getRight()));
 		byte[]           iv         = KeyRingUtil.genSalt();
-		SecretKeySpec    AesKeySpec = new SecretKeySpec(key, "AES");
+		SecretKeySpec    AESKeySpec = new SecretKeySpec(key, "AES");
 		Cipher           cipher     = Cipher.getInstance("AES/CBC/PKCS7Padding");
 		FileOutputStream fos        = new FileOutputStream(keyRingFile.toFile());
 		
-		cipher.init(Cipher.ENCRYPT_MODE, AesKeySpec, new IvParameterSpec(iv));
+		cipher.init(Cipher.ENCRYPT_MODE, AESKeySpec, new IvParameterSpec(iv));
 		fos.write(iv);
 		fos.write(cipher.doFinal(jsonObj.toJSONString().getBytes()));
 	}
@@ -147,39 +149,39 @@ class PaillierPrivateKeyRing
 	{
 		if (!keyRing.containsKey(userId))
 		{
-			throw new Exception("There exists no private key for user ID " + userId + "in the keyring");
+			throw new Exception("There exists no private key for user ID " + userId + " in the keyring");
 		}
 		return keyRing.get(userId);
 	}
 	
-	private static byte[] loadAesKey(byte[] hashKey) throws Exception
+	private static byte[] loadAESKey(byte[] hashKey) throws Exception
 	{
-		byte[]        bytes      = Files.readAllBytes(AeskeyFile);
+		byte[]        bytes      = Files.readAllBytes(AESKeyFile);
 		byte[]        iv         = ArrayUtils.subarray(bytes, 0, 16);
 		byte[]        keyEnc     = ArrayUtils.subarray(bytes, 16, bytes.length);
-		SecretKeySpec AesKeySpec = new SecretKeySpec(hashKey, "AES");
+		SecretKeySpec AESKeySpec = new SecretKeySpec(hashKey, "AES");
 		Cipher        cipher     = Cipher.getInstance("AES/CBC/PKCS7Padding");
 		
-		cipher.init(Cipher.DECRYPT_MODE, AesKeySpec, new IvParameterSpec(iv));
+		cipher.init(Cipher.DECRYPT_MODE, AESKeySpec, new IvParameterSpec(iv));
 		
 		return cipher.doFinal(keyEnc);
 	}
 	
 	private void generateKey() throws Exception
 	{
-		byte[]        AesKey     = KeyRingUtil.genKey();
+		byte[]        AESKey     = KeyRingUtil.genKey();
 		byte[]        iv         = KeyRingUtil.genSalt();
 		Triple        hashTriple = KeyRingUtil.hashToTriple(hashKey);
-		SecretKeySpec AesKeySpec = new SecretKeySpec(ArrayUtils.toPrimitive((Byte[]) hashTriple.getRight()), "AES");
+		SecretKeySpec AESKeySpec = new SecretKeySpec(ArrayUtils.toPrimitive((Byte[]) hashTriple.getRight()), "AES");
 		Cipher        cipher     = Cipher.getInstance("AES/CBC/PKCS7Padding");
 		
-		cipher.init(Cipher.ENCRYPT_MODE, AesKeySpec);
-		AeskeyFile.toFile().createNewFile();
+		cipher.init(Cipher.ENCRYPT_MODE, AESKeySpec);
+		AESKeyFile.toFile().createNewFile();
 		
-		byte[]           AesKeyEnc = ArrayUtils.addAll(iv, cipher.doFinal(AesKey));
-		FileOutputStream fos       = new FileOutputStream(AeskeyFile.toFile());
+		byte[]           AESKeyEnc = ArrayUtils.addAll(iv, cipher.doFinal(AESKey));
+		FileOutputStream fos       = new FileOutputStream(AESKeyFile.toFile());
 		
-		fos.write(AesKeyEnc);
+		fos.write(AESKeyEnc);
 		fos.close();
 	}
 	
