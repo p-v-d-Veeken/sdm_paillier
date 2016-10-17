@@ -49,9 +49,12 @@ public class PaillierPrivateKeyRingTest
 			if (PaillierPrivateKeyRing.keyRingFile.toFile().exists())
 			{
 				PaillierPrivateKeyRing.keyRingFile.toFile().delete();
+				PaillierPrivateKeyRing.AESKeyFile.toFile().delete();
+				PaillierPrivateKeyRing.passHashFile.toFile().delete();
 			}
 		}
 		PaillierPrivateKeyRing.keyDir.toFile().delete();
+		skRing.writeToFile();
 	}
 	
 	@Test
@@ -111,22 +114,8 @@ public class PaillierPrivateKeyRingTest
 	@Test
 	public void testPersistentStorage() throws Exception
 	{
-		skRing.writeToFile();
-		
 		PaillierPrivateKeyRing skRing2 = PaillierPrivateKeyRing.loadFromFile(password);
 		
 		Assert.assertEquals(skRing, skRing2);
-	}
-	
-	@Test
-	public void testLongPassword() throws Exception
-	{
-		String temp = password;
-		password = longPassword;
-		skRing = new PaillierPrivateKeyRing(password);
-		
-		testPersistentStorage();
-		
-		password = temp;
 	}
 }
