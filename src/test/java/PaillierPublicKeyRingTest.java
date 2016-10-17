@@ -11,14 +11,14 @@ import java.io.IOException;
 
 import static junit.framework.TestCase.fail;
 
+@SuppressWarnings("Duplicates")
 public class PaillierPublicKeyRingTest
 {
-	private final PaillierPublicKeyRing pkRing;
-	private final PaillierPublicKey     pk0;
-	private final PaillierPublicKey     pk1;
-	private final PaillierPublicKey     pk2;
-	private final PaillierPublicKey     pk3;
-	
+	private PaillierPublicKeyRing pkRing;
+	private PaillierPublicKey     pk0;
+	private PaillierPublicKey     pk1;
+	private PaillierPublicKey     pk2;
+	private PaillierPublicKey     pk3;
 	
 	public PaillierPublicKeyRingTest()
 	{
@@ -41,26 +41,6 @@ public class PaillierPublicKeyRingTest
 			}
 		}
 		PaillierPublicKeyRing.keyDir.toFile().delete();
-	}
-	
-	@Test
-	public void testKeyStorageAndRetrieval()
-	{
-		Assert.assertEquals(4, pkRing.size());
-		Assert.assertEquals(pk0, pkRing.get(0));
-		Assert.assertEquals(pk1, pkRing.get(1));
-		Assert.assertEquals(pk2, pkRing.get(2));
-		Assert.assertEquals(pk3, pkRing.get(3));
-	}
-	
-	@Test
-	public void testPersistentStorage() throws Exception
-	{
-		pkRing.writeToFile();
-		
-		PaillierPublicKeyRing pkRing2 = PaillierPublicKeyRing.loadFromFile();
-		
-		Assert.assertEquals(pkRing, pkRing2);
 	}
 	
 	@Test
@@ -92,6 +72,26 @@ public class PaillierPublicKeyRingTest
 	}
 	
 	@Test
+	public void testKeyStorageAndRetrieval()
+	{
+		Assert.assertEquals(4, pkRing.size());
+		Assert.assertEquals(pk0, pkRing.get(0));
+		Assert.assertEquals(pk1, pkRing.get(1));
+		Assert.assertEquals(pk2, pkRing.get(2));
+		Assert.assertEquals(pk3, pkRing.get(3));
+	}
+	
+	@Test
+	public void testPersistentStorage() throws Exception
+	{
+		pkRing.writeToFile();
+		
+		PaillierPublicKeyRing pkRing2 = PaillierPublicKeyRing.loadFromFile();
+		
+		Assert.assertEquals(pkRing, pkRing2);
+	}
+	
+	@Test
 	public void testMalformedJSON() throws IOException
 	{
 		if (!PaillierPublicKeyRing.keyDir.toFile().exists())
@@ -110,7 +110,7 @@ public class PaillierPublicKeyRingTest
 		}
 		catch (ParseException e)
 		{
-			Assert.assertTrue(e.toString().equals("Unexpected character (T) at position 0."));
+			Assert.assertEquals(e.toString(), "Unexpected character (T) at position 0.");
 		}
 	}
 }

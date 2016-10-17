@@ -14,14 +14,14 @@ public class KeyRingUtil
 {
 	private static final SecureRandom random = new SecureRandom();
 	
-	public static Triple<Integer, Byte[], Byte[]> loadStoredHash(Path passHashFile) throws IOException, NoSuchAlgorithmException
+	public static Triple<Integer, Byte[], Byte[]> loadStoredHash(Path passHashFile) throws IOException
 	{
 		String hashStr = Files.lines(passHashFile).reduce("", (p, line) -> p + line);
 		
 		return hashToTriple(hashStr);
 	}
 	
-	public static Triple<Integer, Byte[], Byte[]> hashToTriple(String hashStr) throws IOException, NoSuchAlgorithmException
+	public static Triple<Integer, Byte[], Byte[]> hashToTriple(String hashStr)
 	{
 		String[] parts      = hashStr.split(":");
 		Integer  iterations = Integer.parseInt(parts[0]);
@@ -31,7 +31,7 @@ public class KeyRingUtil
 		return Triple.of(iterations, salt, hash);
 	}
 	
-	public static byte[] fromHex(String hex) throws NoSuchAlgorithmException
+	public static byte[] fromHex(String hex)
 	{
 		byte[] bytes = new byte[hex.length() / 2];
 		for (int i = 0; i < bytes.length; i++)
@@ -41,7 +41,7 @@ public class KeyRingUtil
 		return bytes;
 	}
 	
-	public static String toHex(byte[] array) throws NoSuchAlgorithmException
+	public static String toHex(byte[] array)
 	{
 		BigInteger bi            = new BigInteger(1, array);
 		String     hex           = bi.toString(16);

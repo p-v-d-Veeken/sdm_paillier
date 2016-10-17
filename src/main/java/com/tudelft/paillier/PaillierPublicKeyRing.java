@@ -42,7 +42,7 @@ public class PaillierPublicKeyRing
 	{
 		if(!keyDir.toFile().exists())
 		{
-			return new PaillierPublicKeyRing(new JSONObject());
+			throw new IOException("Directory: " + keyDir + " does not exist.");
 		}
 		JSONParser parser  = new JSONParser();
 		JSONObject jsonObj = (JSONObject) parser.parse(new FileReader(keyRingFile.toFile()));
@@ -56,7 +56,7 @@ public class PaillierPublicKeyRing
 		{
 			if (!keyDir.toFile().mkdir())
 			{
-				throw new IOException("Could not create directory: " + keyDir);
+				throw new IOException("Could not create directory: " + keyDir + ".");
 			}
 		}
 		JSONObject jsonObj = new JSONObject();
@@ -100,11 +100,7 @@ public class PaillierPublicKeyRing
 		
 		for (Map.Entry id_key : keyRing.entrySet())
 		{
-			try
-			{
-				if (!other.get((Integer) id_key.getKey()).equals(id_key.getValue())) { return false; }
-			}
-			catch (Exception e) { return false; }
+			if (!id_key.getValue().equals(other.get((Integer) id_key.getKey()))) { return false; }
 		}
 		return true;
 	}
