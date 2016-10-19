@@ -14,6 +14,7 @@
 package com.tudelft.paillier;
 
 import java.math.BigInteger;
+import java.security.SecureRandom;
 
 import com.tudelft.paillier.util.BigIntegerUtil;
 
@@ -236,6 +237,24 @@ public final class PaillierPublicKey {
    */
   public BigInteger raw_add(BigInteger ciphertext1, BigInteger ciphertext2){
     return ciphertext1.multiply(ciphertext2).mod(modulusSquared);
+  }
+  
+  /**
+   * return a random integer in Z*_n
+   *
+   * @return a random integer in Z*_n
+   */
+  public BigInteger randomZStarN()
+  {
+    BigInteger r;
+    
+    do
+    {
+      r = new BigInteger(modulus.bitLength(), BigIntegerUtil.random);
+    }
+    while (r.compareTo(modulus) >= 0 || r.gcd(modulus).intValue() != 1);
+    
+    return r;
   }
   
   /**

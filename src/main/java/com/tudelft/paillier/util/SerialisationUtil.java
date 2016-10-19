@@ -39,7 +39,7 @@ public class SerialisationUtil {
     ObjectMapper mapper = new ObjectMapper();
     data = mapper.createObjectNode();
 
-    data.put("v", enc.calculateCiphertext().toString());
+    data.put("v", enc.getCipherText().toString());
     data.put("e", enc.getExponent());
 
     return data;
