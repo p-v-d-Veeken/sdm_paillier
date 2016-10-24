@@ -22,7 +22,7 @@ class Verifier
 	 * @param ar the randomized value a
 	 * @param br the randomized value a
 	 * @return [-1, 0, 1]
-	 * */
+	 */
 	EncryptedNumber getZ(EncryptedNumber ar, EncryptedNumber br)
 	{
 		BigInteger a = ar.decrypt(sk).decodeBigInteger();

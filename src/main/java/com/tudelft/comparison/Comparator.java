@@ -9,7 +9,7 @@ public class Comparator
 {
 	public static final int MAX_BIT_LENGTH = 90;
 	
-	private transient Verifier            verifier;
+	private transient Verifier verifier;
 	
 	public Comparator(PaillierPrivateKey sk)
 	{
@@ -17,7 +17,7 @@ public class Comparator
 	}
 	
 	/**
-	 * Securely compare two values encrypted wth the Paillier crypto system
+	 * Securely compare two values encrypted wth the Paillier crypto system.
 	 *
 	 * @param a, encrypted
 	 * @param b, encrypted
@@ -25,7 +25,7 @@ public class Comparator
 	 */
 	public EncryptedNumber compare(EncryptedNumber a, EncryptedNumber b, int l)
 	{
-		if(l > MAX_BIT_LENGTH)
+		if (l > MAX_BIT_LENGTH)
 		{
 			throw new PaillierRuntimeException("Maximum bit length exceeded, max: " + MAX_BIT_LENGTH + ", was: " + l);
 		}
@@ -36,6 +36,13 @@ public class Comparator
 		return verifier.getZ(a, b);
 	}
 	
+	/**
+	 * Securely compare two values encrypted wth the Paillier crypto system. If no bit length is specified,
+	 * The maximum bit length is assumed.
+	 *
+	 * @param a, encrypted
+	 * @param b, encrypted
+	 */
 	public EncryptedNumber compare(EncryptedNumber a, EncryptedNumber b)
 	{
 		return compare(a, b, MAX_BIT_LENGTH);
