@@ -69,7 +69,7 @@ public final class PaillierPublicKey {
     }
     this.modulus = modulus;
     this.modulusSquared = modulus.multiply(modulus);
-    //the generator is always set to modulus+1, as this allows a 
+    //the generator is always set to modulus+1, as this allows a
     //significantly more efficient encryption function.
     this.generator = modulus.add(BigInteger.ONE);
   }
@@ -197,18 +197,18 @@ public final class PaillierPublicKey {
   }
   
   /**
-   * The encryption function of the Paillier encryption scheme can be divided into 
+   * The encryption function of the Paillier encryption scheme can be divided into
    * two parts:
    *  - The first part, as implemented here, maps the plaintext into the encrypted space.
-   *    But be aware, that this function is invertible, that is, the ciphertext is not yet 
+   *    But be aware, that this function is invertible, that is, the ciphertext is not yet
    *    secure.
-   *  - Only after the second part, the 'raw_obfuscate' function, the ciphertext is secure 
+   *  - Only after the second part, the 'raw_obfuscate' function, the ciphertext is secure
    *    and the corresponding plaintext can't be recovered without the secret key.
    * The reason we split the encryption is that the second part is computationally significantly
    * more expensive than the first part and since the obfuscation has to be done only once
    * before you can securely share the generated ciphertext, there are scenarios, where
-   * obfuscating at encryption is unnecessary. 
-   *  
+   * obfuscating at encryption is unnecessary.
+   *
    * @param plaintext to be encrypted.
    * @return corresponding unobfuscated ciphertext.
    */
@@ -234,26 +234,9 @@ public final class PaillierPublicKey {
    * @param ciphertext2 second ciphertext.
    * @return ciphertext of the sum of the two plaintexts corresponding to {@code ciphertext1} and {@code ciphertext2}.
    */
-  public BigInteger raw_add(BigInteger ciphertext1, BigInteger ciphertext2){
-    return ciphertext1.multiply(ciphertext2).mod(modulusSquared);
-  }
-  
-  /**
-   * return a random integer in Z*_n
-   *
-   * @return a random integer in Z*_n
-   */
-  public BigInteger randomZStarN()
+  public BigInteger raw_add(BigInteger ciphertext1, BigInteger ciphertext2)
   {
-    BigInteger r;
-    
-    do
-    {
-      r = new BigInteger(modulus.bitLength(), BigIntegerUtil.random);
-    }
-    while (r.compareTo(modulus) >= 0 || r.gcd(modulus).intValue() != 1);
-    
-    return r;
+	  return ciphertext1.multiply(ciphertext2).mod(modulusSquared);
   }
   
   /**
