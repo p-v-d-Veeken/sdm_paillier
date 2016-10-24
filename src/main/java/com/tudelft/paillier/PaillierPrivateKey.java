@@ -105,37 +105,37 @@ public final class PaillierPrivateKey {
 	/**
 	 * The first prime number, {@code p} such that {@code p*q = publicKey.modulus}.
 	 */
-	protected final BigInteger p;
+	public final BigInteger p;
 	
 	/**
 	 * The first prime number, {@code q} such that  {@code p*q = publicKey.modulus}.
 	 */
-	protected final BigInteger q;
+	public final BigInteger q;
 	
 	/**
 	 * The value <code>p<sup>2</sup></code>
 	 */
-	protected final BigInteger pSquared;
+	public final BigInteger pSquared;
 	
 	/**
 	 * The value <code>q<sup>2</sup></code>
 	 */
-	protected final BigInteger qSquared;
+	public final BigInteger qSquared;
 	
 	/**
 	 * The modular inverse of <code>p modulo q</code>
 	 */
-	protected final BigInteger pInverse;
+	public final BigInteger pInverse;
 	
 	/**
 	 * Precomputed <code>hp</code> as defined in Paillier's paper page 12: Decryption using Chinese-remaindering.
 	 */
-	protected final BigInteger hp;
+	public final BigInteger hp;
 	
 	/**
 	 * Precomputed <code>hq</code> as defined in Paillier's paper page 12: Decryption using Chinese-remaindering.
 	 */
-	protected final BigInteger hq;
+	public final BigInteger hq;
 	
 	/**
 	 * Constructs a Paillier private key given the associated public key and the totient.

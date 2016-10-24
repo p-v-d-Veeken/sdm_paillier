@@ -257,6 +257,15 @@ public final class PaillierPublicKey {
     return r;
   }
   
+  public BigInteger alt_encrypt(BigInteger m)
+  {
+    // generate r, a random integer in Z*_n
+    BigInteger r = randomZStarN();
+  
+    // c = g^m * r^n mod n^2
+    return (generator.modPow(m, modulusSquared).multiply(r.modPow(modulus, modulusSquared))).mod(modulusSquared);
+  }
+  
   /**
    * Implements the multiplication function of the Paillier encryption scheme.
    * In the Paillier scheme you can only multiply an unencrypted value with an encrypted value.

@@ -1,8 +1,6 @@
 package com.tudelft.comparison;
 
-import com.tudelft.paillier.PaillierContext;
-import com.tudelft.paillier.PaillierPrivateKey;
-import com.tudelft.paillier.PaillierPublicKey;
+import com.tudelft.paillier.*;
 
 import java.math.BigInteger;
 import java.util.Vector;
@@ -14,8 +12,7 @@ class Verifier
 	private transient PaillierPrivateKey sk;
 	private transient PaillierPublicKey  pk;
 	private transient PaillierContext    cxt;
-	private transient BigInteger         d1;
-	private transient BigInteger         A;
+	public transient BigInteger         d1; //todo:: fix me
 	
 	Verifier(PaillierPrivateKey sk)
 	{
@@ -24,18 +21,30 @@ class Verifier
 		this.cxt = pk.createSignedContext();
 	}
 	
-	BigInteger getD2(BigInteger dEnc, int l) throws Exception
+	/**
+	 * Return a modulus calculated value based on D.
+	 * @param dEnc the d-component in the Paillier comparison scheme.
+	 * @param l the maximum bit length of the two encrypted values
+	 * @return [d2] = floor(d / 2^l)
+	 */
+	BigInteger getD2(BigInteger dEnc, int l)
 	{
 		BigInteger d  = sk.raw_decrypt(dEnc);
-		BigInteger d1 = d.mod(BigInteger.valueOf(2).pow(l)); //d1 <= d mod 2^l
-		BigInteger d2 = d.divide(BigInteger.valueOf(2).pow(l)); //d2 <= floor(d / 2^l)
+		BigInteger d1 = d.mod(BigInteger.valueOf(2).pow(l));     //d1 <= d mod 2^l
+		BigInteger d2 = d.divide(BigInteger.valueOf(2).pow(l));  //d2 <= floor(d / 2^l)
 		
 		this.d1 = d1;
 		
 		return cxt.encrypt(d2).getCipherText();
 	}
 	
-	Vector<BigInteger> getT(int l) throws Exception
+	/**
+	 * Return the length of a bitshifted analysis list.
+	 *
+	 * @param l the maximum bit length of the two encrypted values
+	 * @return [t_i] = d^1_i + sum^{l-1}_{j=i+1} 2^j * d^1_j
+	 */
+	Vector<BigInteger> getT(int l)
 	{
 		byte d1Bits = d1.byteValue();
 		
@@ -43,41 +52,36 @@ class Verifier
 				.parallel()
 				.mapToObj(i ->
 				{
-					try
-					{
-						BigInteger ti = BigInteger.valueOf((d1Bits >> i) & 1); //t_i = d^1_i
-						
-						for (int j = i + 1; j < l; j++)
-						{
-							ti = ti.add(BigInteger.valueOf(2).pow(j) //t_i += sum^{l-1}_{j=i+1} 2^j * d^1_j
-									.multiply(BigInteger.valueOf((d1Bits >> j) & 1))
-							);
-						}
-						return cxt.encrypt(ti.mod(pk.getModulus())).getCipherText();
-					}
-					catch (Exception e) { e.printStackTrace(); }
+					BigInteger ti = BigInteger.ZERO.add(BigInteger.valueOf((d1Bits >> i) & 1)); //t_i = d^1_i
 					
-					return BigInteger.ZERO;
+					for (int j = i + 1; j < l; j++)
+					{
+						ti = ti.add(BigInteger.valueOf(2).pow(j) //t_i += sum^{l-1}_{j=i+1} 2^j * d^1_j
+								.multiply(BigInteger.valueOf((d1Bits >> j) & 1))
+						);
+					}
+					return cxt.encrypt(ti.mod(pk.getModulus())).getCipherText();
 				})
 				.collect(Collectors.toCollection(Vector<BigInteger>::new));
 	}
 	
-	BigInteger getA(BigInteger ei) throws Exception
+	/**
+	 * Evaluate the list [e] to verify if any of the values is 0.
+	 *
+	 * @param e The encrypted list of evaluation elements to be passed on to the verifier.
+	 * @return if any e_i = 0 [A] = 1 otherwise [A] = 0
+	 */
+	BigInteger getA(Vector<BigInteger> e)
 	{
-		if (A != null && A.equals(BigInteger.ONE))
+		for (BigInteger ei_enc : e)
 		{
-			return A;
+			BigInteger ei = sk.raw_decrypt(ei_enc);
+			
+			if (ei.equals(BigInteger.ZERO))
+			{
+				return cxt.encrypt(BigInteger.ONE).getCipherText();
+			}
 		}
-		ei = sk.raw_decrypt(ei);
-		
-		if (ei.equals(BigInteger.ZERO))
-		{
-			return A = cxt.encrypt(BigInteger.ONE).getCipherText();
-		}
-		else if (A == null)
-		{
-			A = cxt.encrypt(BigInteger.ZERO).getCipherText();
-		}
-		return A;
+		return cxt.encrypt(BigInteger.ZERO).getCipherText();
 	}
 }
