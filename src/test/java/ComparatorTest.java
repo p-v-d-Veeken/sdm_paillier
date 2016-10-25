@@ -1,6 +1,5 @@
 import com.tudelft.paillier.PaillierContext;
 import com.tudelft.paillier.PaillierPrivateKey;
-import com.tudelft.paillier.PaillierPrivateKeyRing;
 import com.tudelft.comparison.Comparator;
 
 import static org.junit.Assert.*;
@@ -21,9 +20,7 @@ public class ComparatorTest
 	
 	public ComparatorTest() throws Exception
 	{
-		PaillierPrivateKeyRing skRing = PaillierPrivateKeyRing.loadFromFile("test");
-		
-		sk = skRing.get(0);
+		sk = PaillierPrivateKey.create(2048);
 		cxt = sk.getPublicKey().createSignedContext();
 		rand = new Random(333333333333L);
 		test_iterations = 20;
