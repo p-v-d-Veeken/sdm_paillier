@@ -127,13 +127,13 @@ public final class EncryptedNumber {
    * @return a version of this encrypted number which is guaranteed to be safe.
    */
   public EncryptedNumber getSafeEncryptedNumber() {
-      return new EncryptedNumber(context, calculateCiphertext(), exponent, true);
+      return new EncryptedNumber(context, getCipherText(), exponent, true);
   }
 
   /**
    * @return the {@code ciphertext}.
    */
-  public BigInteger calculateCiphertext() {
+  public BigInteger getCipherText() {
     return isSafe ? ciphertext : obfuscate().ciphertext;
   }
 
@@ -391,7 +391,7 @@ public final class EncryptedNumber {
    * @param serializer to serialize the {@code EncryptedNumber}.
    */
   public void serialize(Serializer serializer) {
-    serializer.serialize(context, calculateCiphertext(), exponent);
+    serializer.serialize(context, getCipherText(), exponent);
   }
 
   @Override

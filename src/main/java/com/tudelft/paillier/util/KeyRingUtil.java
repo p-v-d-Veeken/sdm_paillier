@@ -12,8 +12,6 @@ import java.security.SecureRandom;
 
 public class KeyRingUtil
 {
-	private static final SecureRandom random = new SecureRandom();
-	
 	public static Triple<Integer, Byte[], Byte[]> loadStoredHash(Path passHashFile) throws IOException
 	{
 		String hashStr = Files.lines(passHashFile).reduce("", (p, line) -> p + line);
@@ -71,7 +69,7 @@ public class KeyRingUtil
 	{
 		byte[] bytes = new byte[amount];
 		
-		random.nextBytes(bytes);
+		BigIntegerUtil.random.nextBytes(bytes);
 		
 		return bytes;
 	}
