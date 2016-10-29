@@ -10,6 +10,7 @@ import org.junit.Test;
 import java.math.BigInteger;
 import java.util.Random;
 
+@SuppressWarnings("Duplicates")
 public class ComparatorTest
 {
 	private PaillierPrivateKey sk;
@@ -59,6 +60,23 @@ public class ComparatorTest
 	}
 	
 	@Test
+	public void compareTestALessThanBNoBitLength()
+	{
+		Comparator comp = new Comparator(sk);
+		
+		for (int i = 0; i < test_iterations; i++)
+		{
+			BigInteger b   = new BigInteger(Comparator.MAX_BIT_LENGTH, 64, rand);
+			BigInteger a   = randBigInteger(b);
+			BigInteger res = sk.decrypt(comp.compare(cxt.encrypt(a), cxt.encrypt(b))).decodeBigInteger();
+			
+			assertThat("Should be " + a + " < " + b + ", was " + a + symbol[1 + res.intValue()] + b
+					, res
+					, is(BigInteger.ONE.negate()));
+		}
+	}
+	
+	@Test
 	public void compareTestAGreaterThanB()
 	{
 		Comparator comp = new Comparator(sk);
@@ -77,6 +95,23 @@ public class ComparatorTest
 	}
 	
 	@Test
+	public void compareTestAGreaterThanBNoBitLength()
+	{
+		Comparator comp = new Comparator(sk);
+		
+		for (int i = 0; i < test_iterations; i++)
+		{
+			BigInteger a   = new BigInteger(Comparator.MAX_BIT_LENGTH, 64, rand);
+			BigInteger b   = randBigInteger(a);
+			BigInteger res = sk.decrypt(comp.compare(cxt.encrypt(a), cxt.encrypt(b))).decodeBigInteger();
+			
+			assertThat("Should be " + a + " > " + b + ", was " + a + symbol[1 + res.intValue()] + b
+					, res
+					, is(BigInteger.ONE));
+		}
+	}
+	
+	@Test
 	public void compareTestAEqualsThanB()
 	{
 		Comparator comp = new Comparator(sk);
@@ -87,6 +122,23 @@ public class ComparatorTest
 			BigInteger b   = a;
 			int        l   = Integer.max(a.bitLength(), b.bitLength());
 			BigInteger res = sk.decrypt(comp.compare(cxt.encrypt(a), cxt.encrypt(b), l)).decodeBigInteger();
+			
+			assertThat("Should be " + a + " < " + b + ", was " + a + symbol[1 + res.intValue()] + b
+					, res
+					, is(BigInteger.ZERO));
+		}
+	}
+	
+	@Test
+	public void compareTestAEqualsThanBNoBitLength()
+	{
+		Comparator comp = new Comparator(sk);
+		
+		for (int i = 0; i < test_iterations; i++)
+		{
+			BigInteger a   = new BigInteger(Comparator.MAX_BIT_LENGTH, 64, rand);
+			BigInteger b   = a;
+			BigInteger res = sk.decrypt(comp.compare(cxt.encrypt(a), cxt.encrypt(b))).decodeBigInteger();
 			
 			assertThat("Should be " + a + " < " + b + ", was " + a + symbol[1 + res.intValue()] + b
 					, res

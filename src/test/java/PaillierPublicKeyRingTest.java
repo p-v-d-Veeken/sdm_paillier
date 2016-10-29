@@ -1,29 +1,38 @@
 import com.tudelft.paillier.PaillierPrivateKey;
 import com.tudelft.paillier.PaillierPublicKey;
 import com.tudelft.paillier.PaillierPublicKeyRing;
+import com.tudelft.paillier.PublicKeyJsonSerializer;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 
 import static junit.framework.TestCase.fail;
+import static org.hamcrest.CoreMatchers.is;
 
 @SuppressWarnings("Duplicates")
 public class PaillierPublicKeyRingTest
 {
 	private PaillierPublicKeyRing pkRing;
 	private PaillierPublicKey     pk0;
+	private JSONObject            pk0Serialized;
 	private PaillierPublicKey     pk1;
 	private PaillierPublicKey     pk2;
 	private PaillierPublicKey     pk3;
 	
-	public PaillierPublicKeyRingTest()
+	public PaillierPublicKeyRingTest() throws Exception
 	{
+		PublicKeyJsonSerializer pk0Serializer = new PublicKeyJsonSerializer("");
+		JSONParser              parser        = new JSONParser();
+		
 		pkRing = new PaillierPublicKeyRing();
 		pk0 = PaillierPrivateKey.create(1024).getPublicKey();
+		pk0.serialize(pk0Serializer);
+		pk0Serialized = (JSONObject) parser.parse(pk0Serializer.toString());
 		pk1 = PaillierPrivateKey.create(1024).getPublicKey();
 		pk2 = PaillierPrivateKey.create(1024).getPublicKey();
 		pk3 = PaillierPrivateKey.create(1024).getPublicKey();
@@ -92,20 +101,22 @@ public class PaillierPublicKeyRingTest
 	}
 	
 	@Test
+	public void testFromJSON() throws Exception
+	{
+		String                jsonStr = "{\"0\":" + pk0Serialized.toJSONString() + "}";
+		PaillierPublicKeyRing pkRing  = new PaillierPublicKeyRing(jsonStr);
+		
+		Assert.assertThat("Private keys should be identical", pkRing.get(0), is(pk0));
+	}
+	
+	@Test
 	public void testMalformedJSON() throws IOException
 	{
-		if (!PaillierPublicKeyRing.keyDir.toFile().exists())
-		{
-			PaillierPublicKeyRing.keyDir.toFile().mkdir();
-		}
-		FileOutputStream fos = new FileOutputStream(PaillierPublicKeyRing.keyRingFile.toFile());
-		
-		fos.write("This is some malformed JSON }".getBytes());
-		fos.close();
+		String jsonStr = "This is some malformed JSON }";
 		
 		try
 		{
-			PaillierPublicKeyRing pkRing = PaillierPublicKeyRing.loadFromFile();
+			PaillierPublicKeyRing pkRing = new PaillierPublicKeyRing(jsonStr);
 			fail("Should have thrown a ParseException");
 		}
 		catch (ParseException e)

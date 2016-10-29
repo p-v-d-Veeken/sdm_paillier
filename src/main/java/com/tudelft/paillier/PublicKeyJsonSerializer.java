@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.tudelft.paillier.PaillierPublicKey;
 import org.apache.commons.codec.binary.Base64;
 
 import java.math.BigInteger;
@@ -16,7 +15,7 @@ public class PublicKeyJsonSerializer implements PaillierPublicKey.Serializer
 	private ObjectMapper mapper;
 	private String       comment;
 	
-	PublicKeyJsonSerializer(String comment)
+	public PublicKeyJsonSerializer(String comment)
 	{
 		mapper = new ObjectMapper();
 		mapper.enable(SerializationFeature.INDENT_OUTPUT);

@@ -26,6 +26,13 @@ public class PaillierPublicKeyRing
 		keyRing = new HashMap<>();
 	}
 	
+	public PaillierPublicKeyRing(String keyRingJsonStr) throws ParseException
+	{
+		PaillierPublicKeyRing that = new PaillierPublicKeyRing((JSONObject) new JSONParser().parse(keyRingJsonStr));
+		
+		this.keyRing = that.keyRing;
+	}
+	
 	private PaillierPublicKeyRing(JSONObject jsonObj)
 	{
 		keyRing = new HashMap<>();
