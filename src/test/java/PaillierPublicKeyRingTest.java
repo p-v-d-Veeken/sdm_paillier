@@ -1,10 +1,10 @@
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import com.tudelft.paillier.PaillierPrivateKey;
 import com.tudelft.paillier.PaillierPublicKey;
 import com.tudelft.paillier.PaillierPublicKeyRing;
 import com.tudelft.paillier.PublicKeyJsonSerializer;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -19,20 +19,20 @@ public class PaillierPublicKeyRingTest
 {
 	private PaillierPublicKeyRing pkRing;
 	private PaillierPublicKey     pk0;
-	private JSONObject            pk0Serialized;
+	private JsonObject            pk0Serialized;
 	private PaillierPublicKey     pk1;
 	private PaillierPublicKey     pk2;
 	private PaillierPublicKey     pk3;
 	
 	public PaillierPublicKeyRingTest() throws Exception
 	{
-		PublicKeyJsonSerializer pk0Serializer = new PublicKeyJsonSerializer("");
-		JSONParser              parser        = new JSONParser();
+		PublicKeyJsonSerializer pk0Serializer = new PublicKeyJsonSerializer();
+		JsonParser              parser        = new JsonParser();
 		
 		pkRing = new PaillierPublicKeyRing();
 		pk0 = PaillierPrivateKey.create(1024).getPublicKey();
 		pk0.serialize(pk0Serializer);
-		pk0Serialized = (JSONObject) parser.parse(pk0Serializer.toString());
+		pk0Serialized = (JsonObject) parser.parse(pk0Serializer.toString());
 		pk1 = PaillierPrivateKey.create(1024).getPublicKey();
 		pk2 = PaillierPrivateKey.create(1024).getPublicKey();
 		pk3 = PaillierPrivateKey.create(1024).getPublicKey();
@@ -77,7 +77,6 @@ public class PaillierPublicKeyRingTest
 			Assert.assertEquals(pkRing, pkRing2);
 		}
 		catch (IOException e) { fail("Failed to read from " + PaillierPublicKeyRing.keyRingFile); }
-		catch (ParseException e) { fail("Invalid json in " + PaillierPublicKeyRing.keyRingFile); }
 	}
 	
 	@Test
@@ -101,27 +100,27 @@ public class PaillierPublicKeyRingTest
 	}
 	
 	@Test
-	public void testFromJSON() throws Exception
+	public void testFromJson() throws Exception
 	{
-		String                jsonStr = "{\"0\":" + pk0Serialized.toJSONString() + "}";
+		String                jsonStr = "{\"0\":" + pk0Serialized.toString() + "}";
 		PaillierPublicKeyRing pkRing  = new PaillierPublicKeyRing(jsonStr);
 		
 		Assert.assertThat("Private keys should be identical", pkRing.get(0), is(pk0));
 	}
 	
 	@Test
-	public void testMalformedJSON() throws IOException
+	public void testMalformedJson() throws IOException
 	{
-		String jsonStr = "This is some malformed JSON }";
+		String jsonStr = "This is some malformed Json }";
 		
 		try
 		{
 			PaillierPublicKeyRing pkRing = new PaillierPublicKeyRing(jsonStr);
 			fail("Should have thrown a ParseException");
 		}
-		catch (ParseException e)
+		catch (JsonSyntaxException e)
 		{
-			Assert.assertEquals(e.toString(), "Unexpected character (T) at position 0.");
+			Assert.assertEquals(e.getClass().toString(), "class com.google.gson.JsonSyntaxException");
 		}
 	}
 }

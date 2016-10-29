@@ -1,23 +1,18 @@
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import com.tudelft.paillier.PaillierKeyMismatchException;
 import com.tudelft.paillier.PaillierPrivateKey;
 import com.tudelft.paillier.PaillierPrivateKeyRing;
 import com.tudelft.paillier.PrivateKeyJsonSerializer;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import org.junit.Assert;
 
 import static org.hamcrest.CoreMatchers.*;
 
 import org.junit.Test;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import java.io.File;
 import java.io.IOException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 
@@ -29,7 +24,7 @@ public class PaillierPrivateKeyRingTest
 {
 	private String                 password;
 	private PaillierPrivateKeyRing skRing;
-	private JSONObject             sk0Serialized;
+	private JsonObject             sk0Serialized;
 	private PaillierPrivateKey     sk0;
 	private PaillierPrivateKey     sk1;
 	private PaillierPrivateKey     sk2;
@@ -37,14 +32,14 @@ public class PaillierPrivateKeyRingTest
 	
 	public PaillierPrivateKeyRingTest() throws Exception
 	{
-		PrivateKeyJsonSerializer sk0Serializer = new PrivateKeyJsonSerializer("");
-		JSONParser parser = new JSONParser();
+		PrivateKeyJsonSerializer sk0Serializer = new PrivateKeyJsonSerializer();
+		JsonParser               parser        = new JsonParser();
 		
 		password = "testPass";
 		skRing = new PaillierPrivateKeyRing(password);
 		sk0 = PaillierPrivateKey.create(2048);
 		sk0.serialize(sk0Serializer);
-		sk0Serialized = (JSONObject) parser.parse(sk0Serializer.toString());
+		sk0Serialized = (JsonObject) parser.parse(sk0Serializer.toString());
 		sk1 = PaillierPrivateKey.create(2048);
 		sk2 = PaillierPrivateKey.create(2048);
 		sk3 = PaillierPrivateKey.create(2048);
@@ -92,14 +87,10 @@ public class PaillierPrivateKeyRingTest
 			Assert.assertEquals(skRing, skRing2);
 		}
 		catch (IOException e) { fail("Failed to read from " + PaillierPrivateKeyRing.keyRingFile); }
-		catch (ParseException e) { fail("Invalid json in " + PaillierPrivateKeyRing.keyRingFile); }
 	}
 	
 	@Test
-	public void testWrongPassword()
-			throws IOException, BadPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException,
-			       IllegalBlockSizeException, ParseException, NoSuchPaddingException, InvalidKeyException,
-			       InvalidKeySpecException
+	public void testWrongPassword() throws IOException
 	{
 		try
 		{
@@ -130,9 +121,9 @@ public class PaillierPrivateKeyRingTest
 	}
 	
 	@Test
-	public void testFromJSONString() throws IOException, ParseException
+	public void testFromJsonString() throws IOException
 	{
-		String                 jsonStr = "{\"0\":" + sk0Serialized.toJSONString() + "}";
+		String                 jsonStr = "{\"0\":" + sk0Serialized.toString() + "}";
 		PaillierPrivateKeyRing skRing  = new PaillierPrivateKeyRing(jsonStr, "");
 		
 		try
@@ -148,18 +139,18 @@ public class PaillierPrivateKeyRingTest
 	}
 	
 	@Test
-	public void testMalformedJSON() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException
+	public void testMalformedJson() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException
 	{
-		String jsonStr = "This is some malformed JSON }";
+		String jsonStr = "This is some malformed Json }";
 		
 		try
 		{
 			PaillierPrivateKeyRing pkRing = new PaillierPrivateKeyRing(jsonStr, "");
 			fail("Should have thrown a ParseException");
 		}
-		catch (ParseException e)
+		catch (JsonSyntaxException e)
 		{
-			Assert.assertEquals(e.toString(), "Unexpected character (T) at position 0.");
+			Assert.assertEquals(e.getClass().toString(), "class com.google.gson.JsonSyntaxException");
 		}
 	}
 }

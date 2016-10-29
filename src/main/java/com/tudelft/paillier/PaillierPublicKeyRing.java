@@ -1,10 +1,10 @@
 package com.tudelft.paillier;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.tudelft.paillier.util.SerialisationUtil;
 import org.jetbrains.annotations.Nullable;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -16,7 +16,7 @@ import java.util.Map;
 
 public class PaillierPublicKeyRing
 {
-	public static final Path keyDir = Paths.get("./keys");
+	public static final Path keyDir      = Paths.get("./keys");
 	public static final Path keyRingFile = Paths.get(keyDir + "/pk_ring.pai");
 	
 	private transient Map<Integer, PaillierPublicKey> keyRing;
@@ -26,58 +26,58 @@ public class PaillierPublicKeyRing
 		keyRing = new HashMap<>();
 	}
 	
-	public PaillierPublicKeyRing(String keyRingJsonStr) throws ParseException
+	public PaillierPublicKeyRing(String keyRingJsonStr)
 	{
-		PaillierPublicKeyRing that = new PaillierPublicKeyRing((JSONObject) new JSONParser().parse(keyRingJsonStr));
+		PaillierPublicKeyRing that = new PaillierPublicKeyRing((JsonObject) new JsonParser().parse(keyRingJsonStr));
 		
 		this.keyRing = that.keyRing;
 	}
 	
-	private PaillierPublicKeyRing(JSONObject jsonObj)
+	private PaillierPublicKeyRing(JsonObject keyRingJson)
 	{
 		keyRing = new HashMap<>();
 		
-		for (Object userId : jsonObj.keySet())
+		for (Map.Entry<String, JsonElement> entry : keyRingJson.entrySet())
 		{
-			PaillierPublicKey pk = SerialisationUtil.unserialise_public((Map) jsonObj.get(userId));
+			PaillierPublicKey pk = SerialisationUtil.unserialise_public((JsonObject) entry.getValue());
 			
-			keyRing.put(Integer.parseInt((String) userId), pk);
+			keyRing.put(Integer.parseInt(entry.getKey()), pk);
 		}
 	}
 	
-	public static PaillierPublicKeyRing loadFromFile() throws IOException, ParseException
+	public static PaillierPublicKeyRing loadFromFile() throws IOException
 	{
-		if(!keyDir.toFile().exists())
+		if (!keyDir.toFile().exists())
 		{
 			throw new IOException("Directory: " + keyDir + " does not exist.");
 		}
-		JSONParser parser  = new JSONParser();
-		JSONObject jsonObj = (JSONObject) parser.parse(new FileReader(keyRingFile.toFile()));
+		JsonParser parser      = new JsonParser();
+		JsonObject keyRingJson = (JsonObject) parser.parse(new FileReader(keyRingFile.toFile()));
 		
-		return new PaillierPublicKeyRing(jsonObj);
+		return new PaillierPublicKeyRing(keyRingJson);
 	}
 	
 	public void writeToFile() throws IOException
 	{
-		if(!keyDir.toFile().exists())
+		if (!keyDir.toFile().exists())
 		{
 			if (!keyDir.toFile().mkdir())
 			{
 				throw new IOException("Could not create directory: " + keyDir + ".");
 			}
 		}
-		JSONObject jsonObj = new JSONObject();
+		JsonObject keyRingJson = new JsonObject();
 		
-		for (Map.Entry id_key : keyRing.entrySet())
+		for (Map.Entry<Integer, PaillierPublicKey> id_key : keyRing.entrySet())
 		{
-			PublicKeyJsonSerializer serializer = new PublicKeyJsonSerializer("");
+			PublicKeyJsonSerializer serializer = new PublicKeyJsonSerializer();
 			
-			((PaillierPublicKey) id_key.getValue()).serialize(serializer);
-			jsonObj.put(id_key.getKey(), serializer.getNode());
+			id_key.getValue().serialize(serializer);
+			keyRingJson.add(id_key.getKey().toString(), serializer.getNode());
 		}
 		FileOutputStream fos = new FileOutputStream(keyRingFile.toFile());
 		
-		fos.write(jsonObj.toJSONString().getBytes());
+		fos.write(keyRingJson.toString().getBytes());
 		fos.close();
 	}
 	
@@ -101,7 +101,7 @@ public class PaillierPublicKeyRing
 	{
 		if (o == this) { return true; }
 		if (o == null) { return false; }
-		if(o.getClass() != PaillierPublicKeyRing.class) { return false; }
+		if (o.getClass() != PaillierPublicKeyRing.class) { return false; }
 		
 		PaillierPublicKeyRing other = (PaillierPublicKeyRing) o;
 		

@@ -1,9 +1,8 @@
 package com.tudelft.paillier;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.tudelft.paillier.util.SerialisationUtil;
 import org.apache.commons.codec.binary.Base64;
 
 import java.math.BigInteger;
@@ -11,18 +10,9 @@ import java.math.BigInteger;
 public class PublicKeyJsonSerializer implements PaillierPublicKey.Serializer
 {
 	// container object node
-	private ObjectNode   data;
-	private ObjectMapper mapper;
-	private String       comment;
+	private JsonObject data;
 	
-	public PublicKeyJsonSerializer(String comment)
-	{
-		mapper = new ObjectMapper();
-		mapper.enable(SerializationFeature.INDENT_OUTPUT);
-		this.comment = comment;
-	}
-	
-	public ObjectNode getNode()
+	public JsonObject getNode()
 	{
 		return data;
 	}
@@ -36,16 +26,16 @@ public class PublicKeyJsonSerializer implements PaillierPublicKey.Serializer
 	@Override
 	public void serialize(BigInteger modulus)
 	{
-		data = mapper.createObjectNode();
-		data.put("alg", "PAI-GN1");
-		data.put("kty", "DAJ");
-		data.put("kid", comment);
+		data = new JsonObject();
+		data.add("alg", SerialisationUtil.gson.toJsonTree("PAI-GN1"));
+		data.add("kty", SerialisationUtil.gson.toJsonTree("DAJ"));
 		
 		// Convert n to base64 encode
 		String encodedModulus = new String(Base64.encodeBase64(modulus.toByteArray()));
-		data.put("n", encodedModulus);
+		data.add("n", SerialisationUtil.gson.toJsonTree(encodedModulus));
 		
-		ArrayNode an = data.putArray("key_ops");
+		JsonArray an = new JsonArray();
 		an.add("encrypt");
+		data.add("key_ops", an);
 	}
 }

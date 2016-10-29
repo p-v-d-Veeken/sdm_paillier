@@ -1,14 +1,15 @@
 package com.tudelft.paillier;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.tudelft.paillier.util.KeyRingUtil;
 import com.tudelft.paillier.util.SerialisationUtil;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.jetbrains.annotations.Nullable;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
@@ -49,9 +50,10 @@ public class PaillierPrivateKeyRing
 		hashKey = hashFromPassword(password);
 	}
 	
-	public PaillierPrivateKeyRing(String keyRingJsonStr, String password) throws ParseException
+	public PaillierPrivateKeyRing(String keyRingJsonStr, String password)
 	{
-		JSONObject             keyRingJson = (JSONObject) new JSONParser().parse(keyRingJsonStr);
+		JsonParser             parser      = new JsonParser();
+		JsonObject             keyRingJson = parser.parse(keyRingJsonStr).getAsJsonObject();
 		String                 hashKey     = password != null ? hashFromPassword(password) : null;
 		PaillierPrivateKeyRing that        = new PaillierPrivateKeyRing(keyRingJson, hashKey);
 		
@@ -60,21 +62,21 @@ public class PaillierPrivateKeyRing
 		this.filesExist = false;
 	}
 	
-	private PaillierPrivateKeyRing(JSONObject keyRingJson, String hashKey)
+	private PaillierPrivateKeyRing(JsonObject keyRingJson, String hashKey)
 	{
 		this.keyRing = new HashMap<>();
 		this.hashKey = hashKey;
 		this.filesExist = true;
 		
-		for (Object userId : keyRingJson.keySet())
+		for (Map.Entry<String, JsonElement> entry : keyRingJson.entrySet())
 		{
-			PaillierPrivateKey sk = SerialisationUtil.unserialise_private((Map) keyRingJson.get(userId));
+			PaillierPrivateKey sk = SerialisationUtil.unserialise_private((JsonObject) entry.getValue());
 			
-			keyRing.put(Integer.parseInt((String) userId), sk);
+			keyRing.put(Integer.parseInt(entry.getKey()), sk);
 		}
 	}
 	
-	public static PaillierPrivateKeyRing loadFromFile(String password) throws IOException, ParseException
+	public static PaillierPrivateKeyRing loadFromFile(String password) throws IOException
 	{
 		Security.addProvider(new BouncyCastleProvider());
 		
@@ -90,14 +92,14 @@ public class PaillierPrivateKeyRing
 			byte[]        bytes      = Files.readAllBytes(keyRingFile);
 			byte[]        iv         = ArrayUtils.subarray(bytes, 0, 16);
 			byte[]        keyRingEnc = ArrayUtils.subarray(bytes, 16, bytes.length);
-			JSONParser    parser     = new JSONParser();
+			JsonParser    parser     = new JsonParser();
 			SecretKeySpec AESKeySpec = new SecretKeySpec(AESKey, "AES");
 			Cipher        cipher     = Cipher.getInstance("AES/CBC/PKCS7Padding");
 			
 			cipher.init(Cipher.DECRYPT_MODE, AESKeySpec, new IvParameterSpec(iv));
 			
 			String     keyRingStr  = new String(cipher.doFinal(keyRingEnc));
-			JSONObject keyRingJson = (JSONObject) parser.parse(keyRingStr);
+			JsonObject keyRingJson = (JsonObject) parser.parse(keyRingStr);
 			
 			return new PaillierPrivateKeyRing(keyRingJson, hashKey);
 		}
@@ -133,7 +135,7 @@ public class PaillierPrivateKeyRing
 		}
 		try
 		{
-			JSONObject       keyRingJson = serializeKeyRing();
+			JsonObject       keyRingJson = serializeKeyRing();
 			byte[]           key         = loadAESKey(ArrayUtils.toPrimitive(KeyRingUtil.hashToTriple(hashKey).getRight()));
 			byte[]           iv          = KeyRingUtil.genSalt();
 			SecretKeySpec    AESKeySpec  = new SecretKeySpec(key, "AES");
@@ -142,7 +144,7 @@ public class PaillierPrivateKeyRing
 			
 			cipher.init(Cipher.ENCRYPT_MODE, AESKeySpec, new IvParameterSpec(iv));
 			fos.write(iv);
-			fos.write(cipher.doFinal(keyRingJson.toJSONString().getBytes()));
+			fos.write(cipher.doFinal(keyRingJson.toString().getBytes()));
 		}
 		catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException |
 				InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) { e.printStackTrace(); }
@@ -185,16 +187,16 @@ public class PaillierPrivateKeyRing
 		throw new PaillierRuntimeException("Could not load keyring AES key.");
 	}
 	
-	private JSONObject serializeKeyRing()
+	private JsonObject serializeKeyRing()
 	{
-		JSONObject keyRingJson = new JSONObject();
+		JsonObject keyRingJson = new JsonObject();
 		
-		for (Map.Entry id_key : keyRing.entrySet())
+		for (Map.Entry<Integer, PaillierPrivateKey> id_key : keyRing.entrySet())
 		{
-			PrivateKeyJsonSerializer serializer = new PrivateKeyJsonSerializer("");
+			PrivateKeyJsonSerializer serializer = new PrivateKeyJsonSerializer();
 			
-			((PaillierPrivateKey) id_key.getValue()).serialize(serializer);
-			keyRingJson.put(id_key.getKey(), serializer.getNode());
+			id_key.getValue().serialize(serializer);
+			keyRingJson.add(id_key.getKey().toString(), serializer.getNode());
 		}
 		return keyRingJson;
 	}

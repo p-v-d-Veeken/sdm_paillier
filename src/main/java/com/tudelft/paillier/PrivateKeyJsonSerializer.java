@@ -1,28 +1,17 @@
 package com.tudelft.paillier;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.tudelft.paillier.util.BigIntegerUtil;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.tudelft.paillier.util.SerialisationUtil;
 import org.apache.commons.codec.binary.Base64;
 
 import java.math.BigInteger;
 
 public class PrivateKeyJsonSerializer implements PaillierPrivateKey.Serializer
 {
-	private ObjectNode   data;
-	private ObjectMapper mapper;
-	private String       comment;
+	private JsonObject data;
 	
-	public PrivateKeyJsonSerializer(String comment)
-	{
-		mapper = new ObjectMapper();
-		mapper.enable(SerializationFeature.INDENT_OUTPUT);
-		this.comment = comment;
-	}
-	
-	public ObjectNode getNode()
+	public JsonObject getNode()
 	{
 		return data;
 	}
@@ -36,24 +25,18 @@ public class PrivateKeyJsonSerializer implements PaillierPrivateKey.Serializer
 	@Override
 	public void serialize(PaillierPublicKey publickey, BigInteger p, BigInteger q)
 	{
-		data = mapper.createObjectNode();
-		data.put("kty", "DAJ");
-		ArrayNode an = data.putArray("key_ops");
+		data = new JsonObject();
+		data.add("kty", SerialisationUtil.gson.toJsonTree("DAJ"));
+		JsonArray an = new JsonArray();
 		an.add("decrypt");
+		data.add("key_ops", an);
 		
-		PublicKeyJsonSerializer serialisedPublicKey = new PublicKeyJsonSerializer(comment);
+		PublicKeyJsonSerializer serialisedPublicKey = new PublicKeyJsonSerializer();
 		publickey.serialize(serialisedPublicKey);
-		data.set("pub", serialisedPublicKey.getNode());
-		
-		
-		data.put("kid", comment);
+		data.add("pub", serialisedPublicKey.getNode());
 		
 		BigInteger lambda        = (p.subtract(BigInteger.ONE)).multiply(q.subtract(BigInteger.ONE));
 		String     encodedLambda = new String(Base64.encodeBase64(lambda.toByteArray()));
-		data.put("lambda", encodedLambda);
-		
-		BigInteger mu        = BigIntegerUtil.invert(lambda, publickey.getModulus());
-		String     encodedMu = new String(Base64.encodeBase64(mu.toByteArray()));
-		data.put("mu", encodedMu);
+		data.add("lambda", SerialisationUtil.gson.toJsonTree(encodedLambda));
 	}
 }
