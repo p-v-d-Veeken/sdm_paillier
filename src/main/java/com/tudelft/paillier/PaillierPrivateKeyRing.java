@@ -42,15 +42,14 @@ public class PaillierPrivateKeyRing
 	private transient String                           hashKey;
 	private           boolean                          filesExist;
 	
-	public PaillierPrivateKeyRing(String password) throws NoSuchAlgorithmException, InvalidKeySpecException
+	public PaillierPrivateKeyRing(String password)
 	{
 		keyRing = new HashMap<>();
 		filesExist = false;
 		hashKey = hashFromPassword(password);
 	}
 	
-	public PaillierPrivateKeyRing(String keyRingJsonStr, String password)
-			throws ParseException, NoSuchAlgorithmException, InvalidKeySpecException
+	public PaillierPrivateKeyRing(String keyRingJsonStr, String password) throws ParseException
 	{
 		JSONObject             keyRingJson = (JSONObject) new JSONParser().parse(keyRingJsonStr);
 		String                 hashKey     = password != null ? hashFromPassword(password) : null;
@@ -75,10 +74,7 @@ public class PaillierPrivateKeyRing
 		}
 	}
 	
-	public static PaillierPrivateKeyRing loadFromFile(String password)
-			throws IOException, InvalidKeySpecException, NoSuchAlgorithmException, IllegalBlockSizeException,
-			       InvalidKeyException, BadPaddingException, InvalidAlgorithmParameterException, NoSuchPaddingException,
-			       ParseException
+	public static PaillierPrivateKeyRing loadFromFile(String password) throws IOException, ParseException
 	{
 		Security.addProvider(new BouncyCastleProvider());
 		
@@ -88,26 +84,30 @@ public class PaillierPrivateKeyRing
 		{
 			throw new PaillierKeyMismatchException("Invalid passphrase, could not decrypt keyring.");
 		}
-		byte[]        AESKey     = loadAESKey(ArrayUtils.toPrimitive(KeyRingUtil.hashToTriple(hashKey).getRight()));
-		byte[]        bytes      = Files.readAllBytes(keyRingFile);
-		byte[]        iv         = ArrayUtils.subarray(bytes, 0, 16);
-		byte[]        keyRingEnc = ArrayUtils.subarray(bytes, 16, bytes.length);
-		JSONParser    parser     = new JSONParser();
-		SecretKeySpec AESKeySpec = new SecretKeySpec(AESKey, "AES");
-		Cipher        cipher     = Cipher.getInstance("AES/CBC/PKCS7Padding");
+		try
+		{
+			byte[]        AESKey     = loadAESKey(ArrayUtils.toPrimitive(KeyRingUtil.hashToTriple(hashKey).getRight()));
+			byte[]        bytes      = Files.readAllBytes(keyRingFile);
+			byte[]        iv         = ArrayUtils.subarray(bytes, 0, 16);
+			byte[]        keyRingEnc = ArrayUtils.subarray(bytes, 16, bytes.length);
+			JSONParser    parser     = new JSONParser();
+			SecretKeySpec AESKeySpec = new SecretKeySpec(AESKey, "AES");
+			Cipher        cipher     = Cipher.getInstance("AES/CBC/PKCS7Padding");
+			
+			cipher.init(Cipher.DECRYPT_MODE, AESKeySpec, new IvParameterSpec(iv));
+			
+			String     keyRingStr  = new String(cipher.doFinal(keyRingEnc));
+			JSONObject keyRingJson = (JSONObject) parser.parse(keyRingStr);
+			
+			return new PaillierPrivateKeyRing(keyRingJson, hashKey);
+		}
+		catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException |
+				InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) { e.printStackTrace(); }
 		
-		cipher.init(Cipher.DECRYPT_MODE, AESKeySpec, new IvParameterSpec(iv));
-		
-		String     keyRingStr  = new String(cipher.doFinal(keyRingEnc));
-		JSONObject keyRingJson = (JSONObject) parser.parse(keyRingStr);
-		
-		return new PaillierPrivateKeyRing(keyRingJson, hashKey);
+		throw new PaillierRuntimeException("Could not load keyring from file.");
 	}
 	
-	public void writeToFile()
-			throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
-			       InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException,
-			       InvalidKeySpecException
+	public void writeToFile() throws IOException, PaillierKeyMismatchException
 	{
 		Security.addProvider(new BouncyCastleProvider());
 		
@@ -131,16 +131,21 @@ public class PaillierPrivateKeyRing
 			throw new FileNotFoundException(
 					"password hash file (" + passHashFile + ") not found, keyring file is unrecoverable.");
 		}
-		JSONObject       keyRingJson = serializeKeyRing();
-		byte[]           key         = loadAESKey(ArrayUtils.toPrimitive(KeyRingUtil.hashToTriple(hashKey).getRight()));
-		byte[]           iv          = KeyRingUtil.genSalt();
-		SecretKeySpec    AESKeySpec  = new SecretKeySpec(key, "AES");
-		Cipher           cipher      = Cipher.getInstance("AES/CBC/PKCS7Padding");
-		FileOutputStream fos         = new FileOutputStream(keyRingFile.toFile());
-		
-		cipher.init(Cipher.ENCRYPT_MODE, AESKeySpec, new IvParameterSpec(iv));
-		fos.write(iv);
-		fos.write(cipher.doFinal(keyRingJson.toJSONString().getBytes()));
+		try
+		{
+			JSONObject       keyRingJson = serializeKeyRing();
+			byte[]           key         = loadAESKey(ArrayUtils.toPrimitive(KeyRingUtil.hashToTriple(hashKey).getRight()));
+			byte[]           iv          = KeyRingUtil.genSalt();
+			SecretKeySpec    AESKeySpec  = new SecretKeySpec(key, "AES");
+			Cipher           cipher      = Cipher.getInstance("AES/CBC/PKCS7Padding");
+			FileOutputStream fos         = new FileOutputStream(keyRingFile.toFile());
+			
+			cipher.init(Cipher.ENCRYPT_MODE, AESKeySpec, new IvParameterSpec(iv));
+			fos.write(iv);
+			fos.write(cipher.doFinal(keyRingJson.toJSONString().getBytes()));
+		}
+		catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException |
+				InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) { e.printStackTrace(); }
 	}
 	
 	public void put(int userId, PaillierPrivateKey sk)
@@ -159,18 +164,25 @@ public class PaillierPrivateKeyRing
 	}
 	
 	private static byte[] loadAESKey(byte[] hashKey)
-			throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
-			       InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException
+			throws IOException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException
 	{
 		byte[]        bytes      = Files.readAllBytes(AESKeyFile);
 		byte[]        iv         = ArrayUtils.subarray(bytes, 0, 16);
 		byte[]        keyEnc     = ArrayUtils.subarray(bytes, 16, bytes.length);
 		SecretKeySpec AESKeySpec = new SecretKeySpec(hashKey, "AES");
-		Cipher        cipher     = Cipher.getInstance("AES/CBC/PKCS7Padding");
 		
-		cipher.init(Cipher.DECRYPT_MODE, AESKeySpec, new IvParameterSpec(iv));
-		
-		return cipher.doFinal(keyEnc);
+		try
+		{
+			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding");
+			cipher.init(Cipher.DECRYPT_MODE, AESKeySpec, new IvParameterSpec(iv));
+			
+			return cipher.doFinal(keyEnc);
+		}
+		catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException e)
+		{
+			e.printStackTrace();
+		}
+		throw new PaillierRuntimeException("Could not load keyring AES key.");
 	}
 	
 	private JSONObject serializeKeyRing()
@@ -187,81 +199,105 @@ public class PaillierPrivateKeyRing
 		return keyRingJson;
 	}
 	
-	private String hashFromPassword(String password) throws NoSuchAlgorithmException, InvalidKeySpecException
+	private String hashFromPassword(String password)
 	{
-		byte[]           salt = KeyRingUtil.genSalt();
-		SecretKeyFactory skf  = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
-		PBEKeySpec       spec = new PBEKeySpec(password.toCharArray(), salt, iterations, PBEKeyLength);
+		try
+		{
+			byte[]           salt = KeyRingUtil.genSalt();
+			SecretKeyFactory skf  = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+			PBEKeySpec       spec = new PBEKeySpec(password.toCharArray(), salt, iterations, PBEKeyLength);
+			
+			return iterations
+					+ ":" + KeyRingUtil.toHex(salt)
+					+ ":" + KeyRingUtil.toHex(skf.generateSecret(spec).getEncoded());
+		}
+		catch (NoSuchAlgorithmException | InvalidKeySpecException e) { e.printStackTrace(); }
 		
-		return iterations
-				+ ":" + KeyRingUtil.toHex(salt)
-				+ ":" + KeyRingUtil.toHex(skf.generateSecret(spec).getEncoded());
+		throw new PaillierRuntimeException("Could not generate password hash.");
 	}
 	
-	private void generateKeyFile()
-			throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException,
-			       IOException, BadPaddingException, IllegalBlockSizeException
+	private void generateKeyFile() throws IOException
 	{
 		byte[]        AESKey     = KeyRingUtil.genKey();
 		byte[]        iv         = KeyRingUtil.genSalt();
 		Triple        hashTriple = KeyRingUtil.hashToTriple(hashKey);
 		SecretKeySpec AESKeySpec = new SecretKeySpec(ArrayUtils.toPrimitive((Byte[]) hashTriple.getRight()), "AES");
-		Cipher        cipher     = Cipher.getInstance("AES/CBC/PKCS7Padding");
 		
-		cipher.init(Cipher.ENCRYPT_MODE, AESKeySpec);
-		AESKeyFile.toFile().createNewFile();
-		
-		byte[]           AESKeyEnc = ArrayUtils.addAll(iv, cipher.doFinal(AESKey));
-		FileOutputStream fos       = new FileOutputStream(AESKeyFile.toFile());
-		
-		fos.write(AESKeyEnc);
-		fos.close();
+		try
+		{
+			Cipher           cipher = Cipher.getInstance("AES/CBC/PKCS7Padding");
+			FileOutputStream fos    = new FileOutputStream(AESKeyFile.toFile());
+			
+			cipher.init(Cipher.ENCRYPT_MODE, AESKeySpec);
+			AESKeyFile.toFile().createNewFile();
+			
+			byte[] AESKeyEnc = ArrayUtils.addAll(iv, cipher.doFinal(AESKey));
+			fos.write(AESKeyEnc);
+			fos.close();
+		}
+		catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException |
+				BadPaddingException e) { e.printStackTrace(); }
 	}
 	
-	private void generateHashFile()
-			throws NoSuchAlgorithmException, InvalidKeySpecException, IOException, InvalidKeyException
+	private void generateHashFile() throws IOException, PaillierKeyMismatchException
 	{
-		if (hashKey == null) { throw new InvalidKeyException("No password specified; keyring can not be encrypted."); }
+		if (hashKey == null)
+		{
+			throw new PaillierKeyMismatchException("No password specified; keyring can not be encrypted.");
+		}
 		
-		Triple           hashTriple  = KeyRingUtil.hashToTriple(hashKey);
-		int              iterations  = (int) hashTriple.getLeft();
-		byte[]           salt        = ArrayUtils.toPrimitive((Byte[]) hashTriple.getMiddle());
-		String           hash        = KeyRingUtil.toHex(ArrayUtils.toPrimitive((Byte[]) hashTriple.getRight()));
-		PBEKeySpec       spec        = new PBEKeySpec(hash.toCharArray(), salt, iterations, PBEKeyLength);
-		SecretKeyFactory skf         = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
-		byte[]           passHash    = skf.generateSecret(spec).getEncoded();
-		String           passHashStr = iterations + ":" + KeyRingUtil.toHex(salt) + ":" + KeyRingUtil.toHex(passHash);
+		Triple     hashTriple = KeyRingUtil.hashToTriple(hashKey);
+		int        iterations = (int) hashTriple.getLeft();
+		byte[]     salt       = ArrayUtils.toPrimitive((Byte[]) hashTriple.getMiddle());
+		String     hash       = KeyRingUtil.toHex(ArrayUtils.toPrimitive((Byte[]) hashTriple.getRight()));
+		PBEKeySpec spec       = new PBEKeySpec(hash.toCharArray(), salt, iterations, PBEKeyLength);
 		
-		passHashFile.toFile().createNewFile();
-		
-		FileOutputStream fos = new FileOutputStream(passHashFile.toFile());
-		
-		fos.write(passHashStr.getBytes());
-		fos.close();
+		try
+		{
+			SecretKeyFactory skf      = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+			byte[]           passHash = skf.generateSecret(spec).getEncoded();
+			
+			String passHashStr = iterations + ":" + KeyRingUtil.toHex(salt) + ":" + KeyRingUtil.toHex(passHash);
+			
+			passHashFile.toFile().createNewFile();
+			
+			FileOutputStream fos = new FileOutputStream(passHashFile.toFile());
+			
+			fos.write(passHashStr.getBytes());
+			fos.close();
+		}
+		catch (NoSuchAlgorithmException | InvalidKeySpecException e) { e.printStackTrace(); }
 	}
 	
 	@Nullable
-	private static String validatePassword(String password)
-			throws IOException, NoSuchAlgorithmException, InvalidKeySpecException
+	private static String validatePassword(String password) throws IOException
 	{
-		Triple           hashTriple = KeyRingUtil.loadStoredHash(passHashFile);  //<iterations, salt, hash>
-		int              iterations = (int) hashTriple.getLeft();
-		byte[]           salt       = ArrayUtils.toPrimitive((Byte[]) hashTriple.getMiddle());
-		byte[]           storedHash = ArrayUtils.toPrimitive((Byte[]) hashTriple.getRight());
-		SecretKeyFactory skf        = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
-		PBEKeySpec       firstSpec  = new PBEKeySpec(password.toCharArray(), salt, iterations, PBEKeyLength);
-		String           firstHash  = KeyRingUtil.toHex(skf.generateSecret(firstSpec).getEncoded());
-		PBEKeySpec       secondSpec = new PBEKeySpec(firstHash.toCharArray(), salt, iterations, PBEKeyLength);
-		byte[]           secondHash = skf.generateSecret(secondSpec).getEncoded();
-		int              diff       = storedHash.length ^ secondHash.length;
+		Triple hashTriple = KeyRingUtil.loadStoredHash(passHashFile);  //<iterations, salt, hash>
+		int    iterations = (int) hashTriple.getLeft();
+		byte[] salt       = ArrayUtils.toPrimitive((Byte[]) hashTriple.getMiddle());
+		byte[] storedHash = ArrayUtils.toPrimitive((Byte[]) hashTriple.getRight());
 		
-		for (int i = 0; i < storedHash.length && i < secondHash.length; i++)
+		try
 		{
-			diff |= storedHash[i] ^ secondHash[i];
+			SecretKeyFactory skf        = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+			PBEKeySpec       firstSpec  = new PBEKeySpec(password.toCharArray(), salt, iterations, PBEKeyLength);
+			String           firstHash  = KeyRingUtil.toHex(skf.generateSecret(firstSpec).getEncoded());
+			PBEKeySpec       secondSpec = new PBEKeySpec(firstHash.toCharArray(), salt, iterations, PBEKeyLength);
+			byte[]           secondHash = skf.generateSecret(secondSpec).getEncoded();
+			
+			int diff = storedHash.length ^ secondHash.length;
+			
+			for (int i = 0; i < storedHash.length && i < secondHash.length; i++)
+			{
+				diff |= storedHash[i] ^ secondHash[i];
+			}
+			return diff == 0
+			       ? iterations + ":" + KeyRingUtil.toHex(salt) + ":" + firstHash
+			       : null;
 		}
-		return diff == 0
-		       ? iterations + ":" + KeyRingUtil.toHex(salt) + ":" + firstHash
-		       : null;
+		catch (NoSuchAlgorithmException | InvalidKeySpecException e) { e.printStackTrace(); }
+		
+		throw new PaillierRuntimeException("Could not validate password.");
 	}
 	
 	public boolean equals(Object o)

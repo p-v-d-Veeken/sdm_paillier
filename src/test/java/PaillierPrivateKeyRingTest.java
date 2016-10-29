@@ -130,9 +130,7 @@ public class PaillierPrivateKeyRingTest
 	}
 	
 	@Test
-	public void testFromJSONString()
-			throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidAlgorithmParameterException,
-			       IllegalBlockSizeException, BadPaddingException, InvalidKeySpecException, ParseException
+	public void testFromJSONString() throws IOException, ParseException
 	{
 		String                 jsonStr = "{\"0\":" + sk0Serialized.toJSONString() + "}";
 		PaillierPrivateKeyRing skRing  = new PaillierPrivateKeyRing(jsonStr, "");
@@ -141,7 +139,7 @@ public class PaillierPrivateKeyRingTest
 		{
 			skRing.writeToFile();
 		}
-		catch (InvalidKeyException e)
+		catch (PaillierKeyMismatchException e)
 		{
 			Assert.assertThat("Keyring created without password should not be able to write to file.",
 					e.getMessage(), is("No password specified; keyring can not be encrypted."));
