@@ -101,6 +101,17 @@ public class PaillierPublicKeyRing
 				.collect(Collectors.toList());
 	}
 	
+	public PaillierPublicKeyRing slice(List<Integer> userIds)
+	{
+		PaillierPublicKeyRing pkRingNew = new PaillierPublicKeyRing();
+		pkRingNew.keyRing = keyRing.entrySet()
+				.stream()
+				.filter(entry -> userIds.contains(entry.getKey()))
+				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+		
+		return pkRingNew;
+	}
+	
 	public int size()
 	{
 		return keyRing.size();

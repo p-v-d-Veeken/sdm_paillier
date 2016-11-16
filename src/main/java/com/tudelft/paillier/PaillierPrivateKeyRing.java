@@ -169,6 +169,19 @@ public class PaillierPrivateKeyRing
 				.collect(Collectors.toList());
 	}
 	
+	public PaillierPrivateKeyRing slice(List<Integer> userIds)
+	{
+		PaillierPrivateKeyRing skRingNew = new PaillierPrivateKeyRing("{}", null);
+		skRingNew.keyRing = keyRing.entrySet()
+				.stream()
+				.filter(entry -> userIds.contains(entry.getKey()))
+				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+		skRingNew.hashKey = hashKey;
+		skRingNew.filesExist = filesExist;
+		
+		return skRingNew;
+	}
+	
 	public int size()
 	{
 		return keyRing.size();
