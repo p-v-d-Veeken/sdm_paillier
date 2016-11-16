@@ -28,7 +28,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.security.spec.InvalidKeySpecException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class PaillierPrivateKeyRing
 {
@@ -158,6 +160,13 @@ public class PaillierPrivateKeyRing
 	public PaillierPrivateKey get(int userId)
 	{
 		return keyRing.get(userId);
+	}
+	
+	public List<Integer> keys()
+	{
+		return keyRing.keySet()
+				.stream()
+				.collect(Collectors.toList());
 	}
 	
 	public int size()

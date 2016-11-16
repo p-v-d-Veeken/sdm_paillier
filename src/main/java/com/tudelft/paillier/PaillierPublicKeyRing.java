@@ -12,7 +12,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class PaillierPublicKeyRing
 {
@@ -90,6 +92,13 @@ public class PaillierPublicKeyRing
 	public PaillierPublicKey get(int userId)
 	{
 		return keyRing.get(userId);
+	}
+	
+	public List<Integer> keys()
+	{
+		return keyRing.keySet()
+				.stream()
+				.collect(Collectors.toList());
 	}
 	
 	public int size()
