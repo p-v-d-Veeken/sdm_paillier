@@ -47,6 +47,20 @@ public class PaillierPublicKeyRing
 		}
 	}
 	
+	private JsonObject serializeKeyRing()
+	{
+		JsonObject keyRingJson = new JsonObject();
+		
+		for (Map.Entry<Integer, PaillierPublicKey> id_key : keyRing.entrySet())
+		{
+			PublicKeyJsonSerializer serializer = new PublicKeyJsonSerializer();
+			
+			id_key.getValue().serialize(serializer);
+			keyRingJson.add(id_key.getKey().toString(), serializer.getNode());
+		}
+		return keyRingJson;
+	}
+	
 	public static PaillierPublicKeyRing loadFromFile() throws IOException
 	{
 		if (!keyDir.toFile().exists())
@@ -68,16 +82,8 @@ public class PaillierPublicKeyRing
 				throw new IOException("Could not create directory: " + keyDir + ".");
 			}
 		}
-		JsonObject keyRingJson = new JsonObject();
-		
-		for (Map.Entry<Integer, PaillierPublicKey> id_key : keyRing.entrySet())
-		{
-			PublicKeyJsonSerializer serializer = new PublicKeyJsonSerializer();
-			
-			id_key.getValue().serialize(serializer);
-			keyRingJson.add(id_key.getKey().toString(), serializer.getNode());
-		}
-		FileOutputStream fos = new FileOutputStream(keyRingFile.toFile());
+		JsonObject       keyRingJson = serializeKeyRing();
+		FileOutputStream fos         = new FileOutputStream(keyRingFile.toFile());
 		
 		fos.write(keyRingJson.toString().getBytes());
 		fos.close();
@@ -130,5 +136,10 @@ public class PaillierPublicKeyRing
 			if (!id_key.getValue().equals(other.get((Integer) id_key.getKey()))) { return false; }
 		}
 		return true;
+	}
+	
+	public String toString()
+	{
+		return serializeKeyRing().toString();
 	}
 }

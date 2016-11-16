@@ -343,4 +343,9 @@ public class PaillierPrivateKeyRing
 		}
 		return true;
 	}
+	
+	public String toString()
+	{
+		return serializeKeyRing().toString();
+	}
 }
